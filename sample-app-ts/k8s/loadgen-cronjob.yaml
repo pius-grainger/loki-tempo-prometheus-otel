@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: sample-app-loadgen
+  name: sample-app-ts-loadgen
   namespace: observability
 spec:
   schedule: "* * * * *"
@@ -21,9 +21,10 @@ spec:
                 - /bin/sh
                 - -c
                 - |
-                  BASE="http://sample-app.observability.svc.cluster.local"
+                  BASE="http://sample-app-ts.observability.svc.cluster.local"
                   for i in $(seq 1 20); do
                     curl -s "$BASE/api/products" > /dev/null
+                    curl -s "$BASE/api/products?category=electronics" > /dev/null
                     curl -s "$BASE/api/users" > /dev/null
                     curl -s -X POST "$BASE/api/orders" > /dev/null
                     curl -s -X POST "$BASE/api/checkout" > /dev/null
