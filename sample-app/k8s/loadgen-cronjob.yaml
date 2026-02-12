@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sample-app-loadgen
+  namespace: observability
+spec:
+  schedule: "* * * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: loadgen
+              image: curlimages/curl:8.11.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  BASE="http://sample-app.observability.svc.cluster.local"
+                  for i in $(seq 1 20); do
+                    curl -s "$BASE/api/products" > /dev/null
+                    curl -s "$BASE/api/users" > /dev/null
+                    curl -s -X POST "$BASE/api/orders" > /dev/null
+                    curl -s -X POST "$BASE/api/checkout" > /dev/null
+                    curl -s "$BASE/api/error" > /dev/null 2>&1 || true
+                    sleep 1
+                  done

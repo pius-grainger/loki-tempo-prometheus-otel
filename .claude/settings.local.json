@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(TF_VAR_grafana_admin_password=\"admin123\" terraform apply:*)",
+      "Bash(./deploy.sh:*)",
+      "Bash(kubectl exec:*)",
+      "Bash(python3:*)"
+    ]
+  }
+}
