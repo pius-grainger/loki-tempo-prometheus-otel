@@ -1,0 +1,392 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "SLO Summary",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0 },
+              { "color": "yellow", "value": 0.2 },
+              { "color": "green", "value": 0.5 }
+            ]
+          },
+          "custom": { "align": "center" }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Service" },
+            "properties": [{ "id": "custom.width", "value": 160 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "SLO" },
+            "properties": [{ "id": "custom.width", "value": 160 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Target" },
+            "properties": [{ "id": "custom.width", "value": 80 }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Error Budget Remaining" },
+            "properties": [
+              { "id": "unit", "value": "percentunit" },
+              { "id": "custom.cellOptions", "value": { "mode": "gradient", "type": "gauge" } }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "expr": "slo:error_budget_remaining:ratio",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true },
+            "renameByName": {
+              "service": "Service",
+              "slo": "SLO",
+              "objective": "Target",
+              "Value": "Error Budget Remaining"
+            },
+            "indexByName": { "Service": 0, "SLO": 1, "Target": 2, "Error Budget Remaining": 3 }
+          }
+        }
+      ]
+    },
+    {
+      "title": "Error Budget Remaining Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": -1,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "orange", "value": 0 },
+              { "color": "yellow", "value": 0.2 },
+              { "color": "green", "value": 0.5 }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "thresholdsStyle": { "mode": "line" }
+          }
+        }
+      },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull"] } },
+      "targets": [
+        {
+          "expr": "slo:error_budget_remaining:ratio",
+          "legendFormat": "{{ service }} - {{ slo }} ({{ objective }}%)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "sample-app — Availability SLI (5m rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.999 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:app_availability:ratio_rate5m{service=\"sample-app\"}",
+          "legendFormat": "Availability (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:app_availability:ratio_rate1h{service=\"sample-app\"}",
+          "legendFormat": "Availability (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "sample-app-ts — Availability SLI (5m rate)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.999 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:app_availability:ratio_rate5m{service=\"sample-app-ts\"}",
+          "legendFormat": "Availability (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:app_availability:ratio_rate1h{service=\"sample-app-ts\"}",
+          "legendFormat": "Availability (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "OTel Collector — Trace Pipeline SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.999 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:otel_traces_success:ratio_rate5m",
+          "legendFormat": "Traces (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:otel_traces_success:ratio_rate1h",
+          "legendFormat": "Traces (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "OTel Collector — Metric Pipeline SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.999 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:otel_metrics_success:ratio_rate5m",
+          "legendFormat": "Metrics (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:otel_metrics_success:ratio_rate1h",
+          "legendFormat": "Metrics (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "OTel Collector — Log Pipeline SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 22 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.995 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:otel_logs_success:ratio_rate5m",
+          "legendFormat": "Logs (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:otel_logs_success:ratio_rate1h",
+          "legendFormat": "Logs (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Loki — Ingestion SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 30 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.995 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:loki_write_success:ratio_rate5m",
+          "legendFormat": "Ingestion (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:loki_write_success:ratio_rate1h",
+          "legendFormat": "Ingestion (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Tempo — Ingestion SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "transparent", "value": 0.995 }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "expr": "sli:tempo_write_success:ratio_rate5m",
+          "legendFormat": "Ingestion (5m)",
+          "refId": "A"
+        },
+        {
+          "expr": "sli:tempo_write_success:ratio_rate1h",
+          "legendFormat": "Ingestion (1h)",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "title": "Active SLO Alerts",
+      "type": "table",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 38 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "ALERTS{alertname=~\"SLO.*\", alertstate=\"firing\"}",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true, "Value": true },
+            "renameByName": {
+              "alertname": "Alert",
+              "alertstate": "State",
+              "service": "Service",
+              "severity": "Severity",
+              "slo": "SLO"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "center" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Severity" },
+            "properties": [{
+              "id": "mappings",
+              "value": [
+                { "type": "value", "options": { "critical": { "text": "CRITICAL", "color": "red" } } },
+                { "type": "value", "options": { "warning": { "text": "WARNING", "color": "orange" } } }
+              ]
+            }]
+          }
+        ]
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["slo", "sre", "error-budget"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "SLO - Error Budget Overview",
+  "uid": "slo-overview",
+  "version": 1
+}

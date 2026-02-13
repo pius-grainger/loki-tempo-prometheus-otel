@@ -45,6 +45,31 @@ locals {
 }
 
 # ──────────────────────────────────────────────
+# Default StorageClass (gp3 via EBS CSI driver)
+# ──────────────────────────────────────────────
+resource "kubernetes_storage_class" "gp3" {
+  metadata {
+    name = "gp3"
+    annotations = {
+      "storageclass.kubernetes.io/is-default-class" = "true"
+    }
+  }
+
+  storage_provisioner    = "ebs.csi.aws.com"
+  volume_binding_mode    = "WaitForFirstConsumer"
+  allow_volume_expansion = true
+  reclaim_policy         = "Delete"
+
+  parameters = {
+    type      = "gp3"
+    fsType    = "ext4"
+    encrypted = "true"
+  }
+
+  depends_on = [module.eks]
+}
+
+# ──────────────────────────────────────────────
 # Namespace
 # ──────────────────────────────────────────────
 resource "kubernetes_namespace" "observability" {
@@ -154,4 +179,15 @@ module "otel_collector" {
     module.loki,
     module.tempo,
   ]
+}
+
+# ──────────────────────────────────────────────
+# SLO / SLI / Error Budget Rules
+# ──────────────────────────────────────────────
+module "slo" {
+  source = "../../modules/slo"
+
+  namespace = local.namespace
+
+  depends_on = [module.prometheus]
 }
