@@ -180,6 +180,19 @@ module "otel_collector" {
 }
 
 # ──────────────────────────────────────────────
+# PostgreSQL (Zalando Postgres Operator)
+# ──────────────────────────────────────────────
+module "postgres_operator" {
+  source = "../../modules/postgres-operator"
+
+  namespace           = local.namespace
+  number_of_instances = 1
+  volume_size         = "5Gi"
+
+  depends_on = [kubernetes_namespace.observability]
+}
+
+# ──────────────────────────────────────────────
 # SLO / SLI / Error Budget Rules
 # ──────────────────────────────────────────────
 module "slo" {
