@@ -1,0 +1,76 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres-recording-rules
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: terraform
+    prometheus: kube-prometheus
+    role: slo
+spec:
+  groups:
+    # ── PostgreSQL SLIs ────────────────────────────
+    - name: "sli:postgres:database"
+      interval: "30s"
+      rules:
+        # ── Availability (pg_up) ────────────────────
+        - record: "sli:postgres_availability:ratio_rate5m"
+          expr: '(avg_over_time(pg_up{job=~".*postgres-exporter"}[5m])) or vector(1)'
+          labels:
+            service: postgres
+            slo: availability
+        - record: "sli:postgres_availability:ratio_rate30m"
+          expr: '(avg_over_time(pg_up{job=~".*postgres-exporter"}[30m])) or vector(1)'
+          labels:
+            service: postgres
+            slo: availability
+        - record: "sli:postgres_availability:ratio_rate1h"
+          expr: '(avg_over_time(pg_up{job=~".*postgres-exporter"}[1h])) or vector(1)'
+          labels:
+            service: postgres
+            slo: availability
+        # ── Transaction Success Rate ────────────────
+        - record: "sli:postgres_txn_success:ratio_rate5m"
+          expr: '(sum(rate(pg_stat_database_xact_commit{job=~".*postgres-exporter"}[5m])) / (sum(rate(pg_stat_database_xact_commit{job=~".*postgres-exporter"}[5m])) + sum(rate(pg_stat_database_xact_rollback{job=~".*postgres-exporter"}[5m])))) or vector(1)'
+          labels:
+            service: postgres
+            slo: txn_success
+        - record: "sli:postgres_txn_success:ratio_rate1h"
+          expr: '(sum(rate(pg_stat_database_xact_commit{job=~".*postgres-exporter"}[1h])) / (sum(rate(pg_stat_database_xact_commit{job=~".*postgres-exporter"}[1h])) + sum(rate(pg_stat_database_xact_rollback{job=~".*postgres-exporter"}[1h])))) or vector(1)'
+          labels:
+            service: postgres
+            slo: txn_success
+        # ── Connection Headroom ─────────────────────
+        - record: "sli:postgres_connection_headroom:ratio_rate5m"
+          expr: '(1 - (sum(pg_stat_activity_count{job=~".*postgres-exporter"}) / sum(pg_settings_max_connections{job=~".*postgres-exporter"}))) or vector(1)'
+          labels:
+            service: postgres
+            slo: connection_headroom
+        - record: "sli:postgres_connection_headroom:ratio_rate1h"
+          expr: '(1 - (avg_over_time((sum(pg_stat_activity_count{job=~".*postgres-exporter"}) / sum(pg_settings_max_connections{job=~".*postgres-exporter"}))[1h:1m]))) or vector(1)'
+          labels:
+            service: postgres
+            slo: connection_headroom
+
+    # ── PostgreSQL Error Budgets ───────────────────
+    - name: "slo:postgres:error_budget"
+      interval: "1m"
+      rules:
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:postgres_availability:ratio_rate1h) / 0.001)'
+          labels:
+            service: postgres
+            slo: availability
+            objective: "99.9"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:postgres_txn_success:ratio_rate1h) / 0.001)'
+          labels:
+            service: postgres
+            slo: txn_success
+            objective: "99.9"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:postgres_connection_headroom:ratio_rate1h) / 0.005)'
+          labels:
+            service: postgres
+            slo: connection_headroom
+            objective: "99.5"

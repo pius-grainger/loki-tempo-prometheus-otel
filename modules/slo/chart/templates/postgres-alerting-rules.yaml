@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: postgres-alerting-rules
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: terraform
+    prometheus: kube-prometheus
+    role: slo
+spec:
+  groups:
+    - name: "slo:postgres:alerts:burn_rate"
+      rules:
+        - alert: SLOHighErrorBurnRate
+          expr: 'sli:postgres_availability:ratio_rate5m < 0.9856 and sli:postgres_availability:ratio_rate1h < 0.9856'
+          for: "2m"
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ "{{" }} $labels.service {{ "}}" }}: PostgreSQL availability burn rate is critical"
+            description: "{{ "{{" }} $labels.service {{ "}}" }} is consuming error budget at >14x the sustainable rate. At this pace the monthly budget will be exhausted in < 2 days."
+        - alert: SLOModerateErrorBurnRate
+          expr: 'sli:postgres_availability:ratio_rate30m < 0.998 and sli:postgres_availability:ratio_rate1h < 0.998'
+          for: "15m"
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ "{{" }} $labels.service {{ "}}" }}: PostgreSQL availability burn rate is elevated"
+            description: "{{ "{{" }} $labels.service {{ "}}" }} error rate is elevated. At this pace the monthly error budget will be exhausted within 10 days."
+        - alert: SLOErrorBudgetExhausted
+          expr: 'slo:error_budget_remaining:ratio{service="postgres"} <= 0'
+          for: "5m"
+          labels:
+            severity: critical
+          annotations:
+            summary: "{{ "{{" }} $labels.service {{ "}}" }}: Error budget exhausted for {{ "{{" }} $labels.slo {{ "}}" }}"
+            description: "{{ "{{" }} $labels.service {{ "}}" }} has consumed 100% of its error budget for the {{ "{{" }} $labels.slo {{ "}}" }} SLO (target: {{ "{{" }} $labels.objective {{ "}}" }}%)."
+        - alert: SLOErrorBudgetLow
+          expr: 'slo:error_budget_remaining:ratio{service="postgres"} > 0 and slo:error_budget_remaining:ratio{service="postgres"} < 0.2'
+          for: "15m"
+          labels:
+            severity: warning
+          annotations:
+            summary: "{{ "{{" }} $labels.service {{ "}}" }}: Error budget below 20% for {{ "{{" }} $labels.slo {{ "}}" }}"
+            description: "{{ "{{" }} $labels.service {{ "}}" }} has consumed >80% of its error budget for the {{ "{{" }} $labels.slo {{ "}}" }} SLO. Remaining: {{ "{{" }} $value | humanizePercentage {{ "}}" }}."

@@ -1,0 +1,288 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "title": "PostgreSQL Up",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [
+        { "expr": "pg_up{job=~\".*postgres-exporter\"}", "legendFormat": "", "refId": "A", "instant": true }
+      ]
+    },
+    {
+      "title": "PostgreSQL Version",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "none" } },
+      "targets": [
+        { "expr": "pg_static{job=~\".*postgres-exporter\"}", "legendFormat": "{{ server_version }}", "refId": "A", "instant": true }
+      ],
+      "options": { "textMode": "name" }
+    },
+    {
+      "title": "Active Connections",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 80 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sum(pg_stat_activity_count{job=~\".*postgres-exporter\"})", "legendFormat": "", "refId": "A", "instant": true }
+      ]
+    },
+    {
+      "title": "Max Connections",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {} },
+      "targets": [
+        { "expr": "sum(pg_settings_max_connections{job=~\".*postgres-exporter\"})", "legendFormat": "", "refId": "A", "instant": true }
+      ]
+    },
+    {
+      "title": "Database Size",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [
+        { "expr": "sum(pg_database_size_bytes{job=~\".*postgres-exporter\"})", "legendFormat": "", "refId": "A", "instant": true }
+      ]
+    },
+    {
+      "title": "Cache Hit Ratio",
+      "type": "gauge",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "yellow", "value": 0.9 }, { "color": "green", "value": 0.99 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sum(pg_stat_database_blks_hit{job=~\".*postgres-exporter\"}) / (sum(pg_stat_database_blks_hit{job=~\".*postgres-exporter\"}) + sum(pg_stat_database_blks_read{job=~\".*postgres-exporter\"}))", "legendFormat": "", "refId": "A", "instant": true }
+      ]
+    },
+    {
+      "title": "Connections by State",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "custom": { "lineWidth": 2, "fillOpacity": 20, "stacking": { "mode": "normal" } }
+        }
+      },
+      "targets": [
+        { "expr": "pg_stat_activity_count{job=~\".*postgres-exporter\"}", "legendFormat": "{{ state }}", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Connection Utilization %",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line" } },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 0.8 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sum(pg_stat_activity_count{job=~\".*postgres-exporter\"}) / sum(pg_settings_max_connections{job=~\".*postgres-exporter\"})", "legendFormat": "Utilization", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Transactions per Second",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_xact_commit{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Commits/s", "refId": "A" },
+        { "expr": "sum(rate(pg_stat_database_xact_rollback{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Rollbacks/s", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Transaction Success Rate (SLI)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "transparent", "value": 0.999 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sli:postgres_txn_success:ratio_rate5m", "legendFormat": "5m rate", "refId": "A" },
+        { "expr": "sli:postgres_txn_success:ratio_rate1h", "legendFormat": "1h rate", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Rows Fetched / Returned / Inserted / Updated / Deleted",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_tup_fetched{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Fetched/s", "refId": "A" },
+        { "expr": "sum(rate(pg_stat_database_tup_returned{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Returned/s", "refId": "B" },
+        { "expr": "sum(rate(pg_stat_database_tup_inserted{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Inserted/s", "refId": "C" },
+        { "expr": "sum(rate(pg_stat_database_tup_updated{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Updated/s", "refId": "D" },
+        { "expr": "sum(rate(pg_stat_database_tup_deleted{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Deleted/s", "refId": "E" }
+      ]
+    },
+    {
+      "title": "Cache Hit Ratio Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.8,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line" } },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.99 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_blks_hit{job=~\".*postgres-exporter\"}[5m])) / (sum(rate(pg_stat_database_blks_hit{job=~\".*postgres-exporter\"}[5m])) + sum(rate(pg_stat_database_blks_read{job=~\".*postgres-exporter\"}[5m])))", "legendFormat": "Cache Hit Ratio", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Database Size by Database",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "pg_database_size_bytes{job=~\".*postgres-exporter\"}", "legendFormat": "{{ datname }}", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Deadlocks / Conflicts",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(pg_stat_database_deadlocks{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Deadlocks/s", "refId": "A" },
+        { "expr": "sum(rate(pg_stat_database_conflicts{job=~\".*postgres-exporter\"}[5m]))", "legendFormat": "Conflicts/s", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Availability SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 36 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0.95,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line+area" } },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "transparent", "value": 0.999 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sli:postgres_availability:ratio_rate5m", "legendFormat": "5m rate", "refId": "A" },
+        { "expr": "sli:postgres_availability:ratio_rate1h", "legendFormat": "1h rate", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Connection Headroom SLI",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 36 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line" } },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 0.2 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sli:postgres_connection_headroom:ratio_rate5m", "legendFormat": "5m rate", "refId": "A" },
+        { "expr": "sli:postgres_connection_headroom:ratio_rate1h", "legendFormat": "1h rate", "refId": "B" }
+      ]
+    },
+    {
+      "title": "Error Budget Remaining",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 36 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": -1,
+          "max": 1,
+          "custom": { "lineWidth": 2, "fillOpacity": 10, "thresholdsStyle": { "mode": "line" } },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 0 }, { "color": "green", "value": 0.5 }] }
+        }
+      },
+      "targets": [
+        { "expr": "slo:error_budget_remaining:ratio{service=\"postgres\"}", "legendFormat": "{{ slo }} ({{ objective }}%)", "refId": "A" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["postgres", "database", "slo"],
+  "templating": { "list": [] },
+  "time": { "from": "now-3h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "PostgreSQL Overview",
+  "uid": "postgres-overview",
+  "version": 1
+}
