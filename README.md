@@ -1,6 +1,6 @@
 # Observability Platform
 
-End-to-end observability stack deployed on AWS EKS via Terraform. Collects metrics, logs, and traces with full cross-linking in Grafana.
+End-to-end observability stack deployed on AWS EKS via Terraform. Collects metrics, logs, and traces with full cross-linking in Grafana. Includes SLI/SLO definitions and error budget tracking for all services.
 
 ## Architecture
 
@@ -27,15 +27,21 @@ End-to-end observability stack deployed on AWS EKS via Terraform. Collects metri
               |              |
               |     +--------+--------+
               |     | Applications    |
-              |     | (sample-app)    |
+              |     | (sample-app,    |
+              |     |  sample-app-ts) |
               |     +-----------------+
               |
         +-----+-------+     +----------+
         | ServiceMonitors|   | Promtail |---> Loki
-        | (auto-scrape)  |   | (DaemonSet)
+        | PodMonitors    |   | (DaemonSet)
         +----------------+   +----------+
-                                  |
-                           K8s pod logs
+              ^                    |
+              |              K8s pod logs
+     +--------+--------+
+     | Postgres Operator|
+     | (Zalando)        |
+     | + postgres_exporter
+     +------------------+
 ```
 
 ## Data Flow
@@ -43,6 +49,7 @@ End-to-end observability stack deployed on AWS EKS via Terraform. Collects metri
 | Signal  | Path |
 |---------|------|
 | Metrics | App --> OTel Collector --> Prometheus <-- Grafana |
+| Metrics | PostgreSQL --> postgres_exporter --> Prometheus <-- Grafana |
 | Logs    | App --> OTel Collector --> Loki <-- Grafana |
 | Logs    | K8s pods --> Promtail --> Loki <-- Grafana |
 | Traces  | App --> OTel Collector --> Tempo <-- Grafana |
@@ -52,18 +59,21 @@ End-to-end observability stack deployed on AWS EKS via Terraform. Collects metri
 ```
 observability/
 ├── modules/
-│   ├── eks/              # EKS cluster + VPC + OIDC + EBS CSI
-│   ├── s3-bucket/        # Reusable S3 bucket (encryption, lifecycle)
-│   ├── irsa/             # IAM Role for Service Accounts
-│   ├── prometheus/       # kube-prometheus-stack (Grafana disabled)
-│   ├── loki/             # Loki + S3 backend + IRSA + Promtail
-│   ├── tempo/            # Tempo + S3 backend + IRSA
-│   ├── grafana/          # Standalone Grafana + dashboards
-│   └── otel-collector/   # OTel Collector (contrib image)
+│   ├── eks/                # EKS cluster + VPC + OIDC + EBS CSI
+│   ├── s3-bucket/          # Reusable S3 bucket (encryption, lifecycle)
+│   ├── irsa/               # IAM Role for Service Accounts
+│   ├── prometheus/         # kube-prometheus-stack (Grafana disabled)
+│   ├── loki/               # Loki + S3 backend + IRSA + Promtail
+│   ├── tempo/              # Tempo + S3 backend + IRSA
+│   ├── grafana/            # Standalone Grafana + dashboards
+│   ├── otel-collector/     # OTel Collector (contrib image)
+│   ├── postgres-operator/  # Zalando Postgres Operator + cluster
+│   └── slo/                # SLI recording rules + SLO alerting rules
 ├── environments/
-│   ├── staging/          # Staging EKS cluster composition
-│   └── production/       # Production (larger nodes, longer retention)
-├── sample-app/           # Python demo app with OTel instrumentation
+│   ├── staging/            # Staging EKS cluster composition
+│   └── production/         # Production (larger nodes, longer retention)
+├── sample-app/             # Python demo app with OTel instrumentation
+├── sample-app-ts/          # TypeScript demo app with OTel instrumentation
 └── scripts/
     └── bootstrap-state.sh
 ```
@@ -97,10 +107,12 @@ kubectl port-forward svc/grafana 3000:80 -n observability
 | [tempo](modules/tempo/) | Tempo monolithic + S3 | [README](modules/tempo/README.md) |
 | [grafana](modules/grafana/) | Grafana with auto-provisioned datasources + dashboards | [README](modules/grafana/README.md) |
 | [otel-collector](modules/otel-collector/) | OTel Collector with 3 pipelines | [README](modules/otel-collector/README.md) |
+| [postgres-operator](modules/postgres-operator/) | Zalando Postgres Operator + cluster + exporter | [README](modules/postgres-operator/README.md) |
+| [slo](modules/slo/) | SLI/SLO recording rules + burn rate alerts | [README](modules/slo/README.md) |
 
 ## Dashboards
 
-Five dashboards are auto-provisioned via ConfigMap sidecar:
+Seven dashboards are auto-provisioned via ConfigMap sidecar:
 
 | Dashboard | Description |
 |-----------|-------------|
@@ -109,6 +121,8 @@ Five dashboards are auto-provisioned via ConfigMap sidecar:
 | Loki - Logs Overview | Log volume, error/warning rates, recent errors |
 | Tempo - Traces Overview | Spans/sec, query latency, recent traces |
 | OpenTelemetry Collector | Accepted/refused signals, exporter stats, CPU/memory |
+| SLO - Error Budget Overview | Error budgets, SLI ratios, burn rate alerts for all services |
+| PostgreSQL Overview | pg_up, connections, transactions, cache hit ratio, SLIs |
 
 ## Environment Differences
 
@@ -121,5 +135,7 @@ Five dashboards are auto-provisioned via ConfigMap sidecar:
 | Prometheus storage | 50Gi | 200Gi |
 | Loki retention | 30d | 90d |
 | Tempo retention | 14d | 30d |
+| PostgreSQL instances | 1 (standalone) | 2 (HA with Patroni) |
+| PostgreSQL storage | 5Gi | 20Gi |
 | Grafana ingress | disabled | enabled |
 | S3 force_destroy | true | false |
