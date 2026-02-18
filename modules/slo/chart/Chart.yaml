@@ -1,0 +1,5 @@
+apiVersion: v2
+name: slo-rules
+description: SLI recording rules and SLO alerting rules
+type: application
+version: 0.1.0

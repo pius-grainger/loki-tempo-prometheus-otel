@@ -1,0 +1,159 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sli-recording-rules
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: terraform
+    prometheus: kube-prometheus
+    role: slo
+spec:
+  groups:
+    # ── Application SLIs ──────────────────────────
+    - name: "sli:application:availability"
+      interval: "30s"
+      rules:
+        # ── sample-app (Python) ───────────────────
+        - record: "sli:app_availability:ratio_rate5m"
+          expr: 'sum(rate(http_server_duration_milliseconds_count{job="sample-app", http_status_code!~"5.."}[5m])) / sum(rate(http_server_duration_milliseconds_count{job="sample-app"}[5m]))'
+          labels:
+            service: sample-app
+            slo: availability
+        - record: "sli:app_availability:ratio_rate30m"
+          expr: 'sum(rate(http_server_duration_milliseconds_count{job="sample-app", http_status_code!~"5.."}[30m])) / sum(rate(http_server_duration_milliseconds_count{job="sample-app"}[30m]))'
+          labels:
+            service: sample-app
+            slo: availability
+        - record: "sli:app_availability:ratio_rate1h"
+          expr: 'sum(rate(http_server_duration_milliseconds_count{job="sample-app", http_status_code!~"5.."}[1h])) / sum(rate(http_server_duration_milliseconds_count{job="sample-app"}[1h]))'
+          labels:
+            service: sample-app
+            slo: availability
+        # ── sample-app-ts (TypeScript) ────────────
+        - record: "sli:app_availability:ratio_rate5m"
+          expr: 'sum(rate(http_server_duration_milliseconds_count{job="sample-app-ts", http_status_code!~"5.."}[5m])) / sum(rate(http_server_duration_milliseconds_count{job="sample-app-ts"}[5m]))'
+          labels:
+            service: sample-app-ts
+            slo: availability
+        - record: "sli:app_availability:ratio_rate30m"
+          expr: 'sum(rate(http_server_duration_milliseconds_count{job="sample-app-ts", http_status_code!~"5.."}[30m])) / sum(rate(http_server_duration_milliseconds_count{job="sample-app-ts"}[30m]))'
+          labels:
+            service: sample-app-ts
+            slo: availability
+        - record: "sli:app_availability:ratio_rate1h"
+          expr: 'sum(rate(http_server_duration_milliseconds_count{job="sample-app-ts", http_status_code!~"5.."}[1h])) / sum(rate(http_server_duration_milliseconds_count{job="sample-app-ts"}[1h]))'
+          labels:
+            service: sample-app-ts
+            slo: availability
+
+    # ── OTel Collector SLIs ───────────────────────
+    - name: "sli:otel_collector:pipeline"
+      interval: "30s"
+      rules:
+        - record: "sli:otel_traces_success:ratio_rate5m"
+          expr: '(sum(rate(otelcol_exporter_sent_spans[5m])) / sum(rate(otelcol_receiver_accepted_spans[5m]))) or vector(1)'
+          labels:
+            service: otel-collector
+            slo: trace_pipeline
+        - record: "sli:otel_traces_success:ratio_rate1h"
+          expr: '(sum(rate(otelcol_exporter_sent_spans[1h])) / sum(rate(otelcol_receiver_accepted_spans[1h]))) or vector(1)'
+          labels:
+            service: otel-collector
+            slo: trace_pipeline
+        - record: "sli:otel_metrics_success:ratio_rate5m"
+          expr: '(sum(rate(otelcol_exporter_sent_metric_points[5m])) / sum(rate(otelcol_receiver_accepted_metric_points[5m]))) or vector(1)'
+          labels:
+            service: otel-collector
+            slo: metric_pipeline
+        - record: "sli:otel_metrics_success:ratio_rate1h"
+          expr: '(sum(rate(otelcol_exporter_sent_metric_points[1h])) / sum(rate(otelcol_receiver_accepted_metric_points[1h]))) or vector(1)'
+          labels:
+            service: otel-collector
+            slo: metric_pipeline
+        - record: "sli:otel_logs_success:ratio_rate5m"
+          expr: '(sum(rate(otelcol_exporter_sent_log_records[5m])) / sum(rate(otelcol_receiver_accepted_log_records[5m]))) or vector(1)'
+          labels:
+            service: otel-collector
+            slo: log_pipeline
+        - record: "sli:otel_logs_success:ratio_rate1h"
+          expr: '(sum(rate(otelcol_exporter_sent_log_records[1h])) / sum(rate(otelcol_receiver_accepted_log_records[1h]))) or vector(1)'
+          labels:
+            service: otel-collector
+            slo: log_pipeline
+
+    # ── Loki SLIs ────────────────────────────────
+    - name: "sli:loki:ingestion"
+      interval: "30s"
+      rules:
+        - record: "sli:loki_write_success:ratio_rate5m"
+          expr: '(sum(rate(loki_request_duration_seconds_count{route=~"loki_api_v1_push|/logproto.Pusher/Push", status_code!~"5.."}[5m])) / sum(rate(loki_request_duration_seconds_count{route=~"loki_api_v1_push|/logproto.Pusher/Push"}[5m]))) or vector(1)'
+          labels:
+            service: loki
+            slo: ingestion
+        - record: "sli:loki_write_success:ratio_rate1h"
+          expr: '(sum(rate(loki_request_duration_seconds_count{route=~"loki_api_v1_push|/logproto.Pusher/Push", status_code!~"5.."}[1h])) / sum(rate(loki_request_duration_seconds_count{route=~"loki_api_v1_push|/logproto.Pusher/Push"}[1h]))) or vector(1)'
+          labels:
+            service: loki
+            slo: ingestion
+
+    # ── Tempo SLIs ───────────────────────────────
+    - name: "sli:tempo:ingestion"
+      interval: "30s"
+      rules:
+        - record: "sli:tempo_write_success:ratio_rate5m"
+          expr: '(sum(rate(tempo_request_duration_seconds_count{route=~"/tempopb.Pusher/PushBytesV2", status_code!~"5.."}[5m])) / sum(rate(tempo_request_duration_seconds_count{route=~"/tempopb.Pusher/PushBytesV2"}[5m]))) or vector(1)'
+          labels:
+            service: tempo
+            slo: ingestion
+        - record: "sli:tempo_write_success:ratio_rate1h"
+          expr: '(sum(rate(tempo_request_duration_seconds_count{route=~"/tempopb.Pusher/PushBytesV2", status_code!~"5.."}[1h])) / sum(rate(tempo_request_duration_seconds_count{route=~"/tempopb.Pusher/PushBytesV2"}[1h]))) or vector(1)'
+          labels:
+            service: tempo
+            slo: ingestion
+
+    # ── Error Budget Remaining ───────────────────
+    - name: "slo:error_budget"
+      interval: "1m"
+      rules:
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:app_availability:ratio_rate1h{service="sample-app"}) / 0.001)'
+          labels:
+            service: sample-app
+            slo: availability
+            objective: "99.9"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:app_availability:ratio_rate1h{service="sample-app-ts"}) / 0.001)'
+          labels:
+            service: sample-app-ts
+            slo: availability
+            objective: "99.9"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:otel_traces_success:ratio_rate1h) / 0.001)'
+          labels:
+            service: otel-collector
+            slo: trace_pipeline
+            objective: "99.9"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:otel_metrics_success:ratio_rate1h) / 0.001)'
+          labels:
+            service: otel-collector
+            slo: metric_pipeline
+            objective: "99.9"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:otel_logs_success:ratio_rate1h) / 0.005)'
+          labels:
+            service: otel-collector
+            slo: log_pipeline
+            objective: "99.5"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:loki_write_success:ratio_rate1h) / 0.005)'
+          labels:
+            service: loki
+            slo: ingestion
+            objective: "99.5"
+        - record: "slo:error_budget_remaining:ratio"
+          expr: '1 - ((1 - sli:tempo_write_success:ratio_rate1h) / 0.005)'
+          labels:
+            service: tempo
+            slo: ingestion
+            objective: "99.5"
