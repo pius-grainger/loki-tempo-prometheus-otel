@@ -1,0 +1,10 @@
+namespace: observability
+teamId: observability
+clusterName: observability-obs-postgres
+numberOfInstances: 1
+pgVersion: "16"
+volumeSize: 5Gi
+cpuRequest: 100m
+memoryRequest: 256Mi
+cpuLimit: 500m
+memoryLimit: 512Mi

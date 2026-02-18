@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: postgres-exporter
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: terraform
+spec:
+  selector:
+    matchLabels:
+      team: {{ .Values.teamId }}
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
