@@ -28,7 +28,7 @@ spec:
             summary: "{{ "{{" }} $labels.service {{ "}}" }}: SLO burn rate is elevated"
             description: "{{ "{{" }} $labels.service {{ "}}" }} error rate is elevated. At this pace the monthly error budget will be exhausted within 10 days."
         - alert: SLOErrorBudgetExhausted
-          expr: 'slo:error_budget_remaining:ratio <= 0'
+          expr: 'slo:error_budget_remaining:ratio{service!="postgres"} <= 0'
           for: "5m"
           labels:
             severity: critical
@@ -36,7 +36,7 @@ spec:
             summary: "{{ "{{" }} $labels.service {{ "}}" }}: Error budget exhausted for {{ "{{" }} $labels.slo {{ "}}" }}"
             description: "{{ "{{" }} $labels.service {{ "}}" }} has consumed 100% of its error budget for the {{ "{{" }} $labels.slo {{ "}}" }} SLO (target: {{ "{{" }} $labels.objective {{ "}}" }}%)."
         - alert: SLOErrorBudgetLow
-          expr: 'slo:error_budget_remaining:ratio > 0 and slo:error_budget_remaining:ratio < 0.2'
+          expr: 'slo:error_budget_remaining:ratio{service!="postgres"} > 0 and slo:error_budget_remaining:ratio{service!="postgres"} < 0.2'
           for: "15m"
           labels:
             severity: warning
